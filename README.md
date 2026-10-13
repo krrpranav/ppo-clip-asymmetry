@@ -111,12 +111,14 @@ uv run python -m ppo.plot --runs runs/breakout-grid --out figures --prefix break
 - MinAtar's entropy ceiling is $\ln 6 \approx 1.79$ nats; all effects live
   inside that. 5 seeds per cell; heatmaps report mean ± sd.
 - **The clip bounds also change update size, not just which samples die:**
-  realized per-update KL varies ~4× across the grid (≈0.0003 at clip_low=0.05
-  up to ≈0.0012+ at clip_low=0.3, both games). Entropy differences therefore
-  co-move with step-size differences, and this experiment cannot separate
-  "the clip's dead zones move entropy" from "smaller effective updates
-  preserve entropy." A KL-matched control is the single most important
-  follow-up.
+  mean realized KL spans 4.7–7.2× across the grid (0.0019→0.0138 on
+  breakout, 0.0036→0.0170 on asterix), so the heatmaps carry it as a third
+  panel. Entropy differences therefore co-move with step size, and this
+  experiment cannot cleanly separate "the clip's dead zones move entropy"
+  from "smaller effective updates preserve entropy." Cells paired at nearby
+  mean KL (within 15%) still differ by up to 0.90 nats on breakout:
+  suggestive, not a control. A proper KL-matched run is the single most
+  important follow-up.
 - Four games, one environment family. The freeway result suggests reward
   sparsity moderates the mechanism — worth a targeted follow-up, not a claim.
 - One training regime (`epochs=8, lr=1e-3`). The action-space-size

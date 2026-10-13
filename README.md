@@ -1,6 +1,6 @@
 # ppo-clip-asymmetry
 
-[![tests](https://github.com/krrprnv/ppo-clip-asymmetry/actions/workflows/tests.yml/badge.svg)](https://github.com/krrprnv/ppo-clip-asymmetry/actions/workflows/tests.yml)
+[![tests](https://github.com/krrpranav/ppo-clip-asymmetry/actions/workflows/tests.yml/badge.svg)](https://github.com/krrpranav/ppo-clip-asymmetry/actions/workflows/tests.yml)
 
 In 2025 the LLM-RL world found out that PPO's two clip bounds do different
 jobs: tightening the lower bound pushes policy entropy up, tightening the upper

@@ -1,6 +1,6 @@
 # ppo-clip-asymmetry
 
-[![tests](https://github.com/krrprnv/ppo-clip-asymmetry/actions/workflows/tests.yml/badge.svg)](https://github.com/krrprnv/ppo-clip-asymmetry/actions/workflows/tests.yml)
+[![tests](https://github.com/krrpranav/ppo-clip-asymmetry/actions/workflows/tests.yml/badge.svg)](https://github.com/krrpranav/ppo-clip-asymmetry/actions/workflows/tests.yml)
 
 In 2025 the LLM-RL world found out that PPO's two clip bounds do different
 jobs: tightening the lower bound pushes policy entropy up, tightening the upper
@@ -36,9 +36,9 @@ policy collapses to one action, the max-entropy one stays spread:
 
 | | entropy vs clip bounds | return vs entropy | reward |
 |---|---|---|---|
-| breakout | strictly monotone, both axes (0.30→1.23 nats) | positive | dense |
+| breakout | monotone both axes (0.30→1.23 nats), one tie | positive | dense |
 | space_invaders | monotone within seed bands | flat | dense |
-| asterix | monotone, one inversion at tightest `clip_low` | negative | dense |
+| asterix | monotone but for two dips at the tight bounds | negative | dense |
 | freeway | no structure; seeds go bimodal | unstable | **sparse** |
 
 1. **The mechanism transfers where reward is dense.** Tighter `clip_low` →
@@ -46,8 +46,11 @@ policy collapses to one action, the max-entropy one stays spread:
    anywhere — Park et al.'s signs at |A|≈100k, reproduced at |A|=6. Freeway,
    the one sparse-reward game, breaks it: the advantage signal is too rare for
    the clip's dead zones to bite consistently.
-2. **`clip_low` is the dominant dial**, moving entropy ~2–3× further than
-   `clip_high`. The famous trick (DAPO's clip-higher) tunes the weaker knob.
+2. **`clip_low` is the stronger dial where the pattern is clean**: entropy
+   moves 2.2× further along `clip_low` than along `clip_high` on breakout
+   (each axis' entropy range, averaged over the other axis), 1.6× on
+   space_invaders, 1.9× on freeway's unstructured grid, and a wash on asterix
+   (1.0×). The famous trick (DAPO's clip-higher) tunes the weaker knob.
 3. **The performance effect is environment-specific** — positive, flat,
    negative, unstable, one per game. Cell-level return rankings are seed
    noise everywhere; only the row-level entropy pattern survives the error
@@ -108,12 +111,14 @@ uv run python -m ppo.plot --runs runs/breakout-grid --out figures --prefix break
 - MinAtar's entropy ceiling is $\ln 6 \approx 1.79$ nats; all effects live
   inside that. 5 seeds per cell; heatmaps report mean ± sd.
 - **The clip bounds also change update size, not just which samples die:**
-  realized per-update KL varies ~4× across the grid (≈0.0003 at clip_low=0.05
-  up to ≈0.0012+ at clip_low=0.3, both games). Entropy differences therefore
-  co-move with step-size differences, and this experiment cannot separate
-  "the clip's dead zones move entropy" from "smaller effective updates
-  preserve entropy." A KL-matched control is the single most important
-  follow-up.
+  mean realized KL spans 4.7–7.2× across the grid (0.0019→0.0138 on
+  breakout, 0.0036→0.0170 on asterix), so the heatmaps carry it as a third
+  panel. Entropy differences therefore co-move with step size, and this
+  experiment cannot cleanly separate "the clip's dead zones move entropy"
+  from "smaller effective updates preserve entropy." Cells paired at nearby
+  mean KL (within 15%) still differ by up to 0.90 nats on breakout:
+  suggestive, not a control. A proper KL-matched run is the single most
+  important follow-up.
 - Four games, one environment family. The freeway result suggests reward
   sparsity moderates the mechanism — worth a targeted follow-up, not a claim.
 - One training regime (`epochs=8, lr=1e-3`). The action-space-size

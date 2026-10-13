@@ -5,8 +5,11 @@ Reads every runs/<grid>/cl{L}_ch{H}/seed{N}/metrics.jsonl under --runs and makes
   <prefix>_trajectories.png  — entropy and return over training, one line per
                                (clip_low, clip_high) cell, mean +/- sd over seeds.
                                Color encodes clip_low, linestyle encodes clip_high.
-  <prefix>_heatmap.png       — final entropy and final return over the grid,
-                               single-hue sequential, values printed in cells.
+  <prefix>_heatmap.png       — final entropy, final return and mean approx_kl
+                               over the grid, single-hue sequential, values
+                               printed in cells. KL is the confound: entropy
+                               moves with update size as well as with the clip,
+                               so the panel sits next to the entropy grid.
 
 Usage:
     uv run python -m ppo.plot --runs runs/pilot-breakout --out figures --prefix pilot_breakout
@@ -151,18 +154,40 @@ def _final(seed_rows, key, tail_frac=0.1):
     return float(np.mean(per_seed)), float(np.std(per_seed))
 
 
+def _mean_run(seed_rows, key):
+    """Per-seed mean over the whole run -> (mean, sd) across seeds.
+
+    KL gets this instead of _final: lr anneals, so the tail of a run is the
+    quietest part of it and says little about the update sizes that shaped it.
+    """
+    per_seed = []
+    for rows in seed_rows:
+        vals = [r[key] for r in rows if r[key] is not None]
+        if vals:
+            per_seed.append(float(np.mean(vals)))
+    if not per_seed:
+        return np.nan, np.nan
+    return float(np.mean(per_seed)), float(np.std(per_seed))
+
+
 def heatmap_figure(cells, out_path: Path, title: str):
     cls = sorted({cl for cl, _ in cells})
     chs = sorted({ch for _, ch in cells})
-    fig, axes = plt.subplots(1, 2, figsize=(9.5, 4.0), dpi=160)
+    fig, axes = plt.subplots(1, 3, figsize=(13.6, 4.0), dpi=160)
 
-    for ax, key, label in zip(
-        axes, ("entropy", "episodic_return"), ("final entropy (nats)", "final return")
-    ):
+    # (key, label, aggregator, number format). approx_kl is not a final
+    # quantity: it gets the whole-run mean, the other two the tail mean.
+    panels = (
+        ("entropy", "final entropy (nats)", _final, ".2f"),
+        ("episodic_return", "final return", _final, ".2f"),
+        ("approx_kl", "mean approx_kl (whole run)", _mean_run, ".4f"),
+    )
+
+    for ax, (key, label, stat, spec) in zip(axes, panels):
         grid = np.full((len(cls), len(chs)), np.nan)
         sds = np.full((len(cls), len(chs)), np.nan)
         for (cl, ch), seed_rows in cells.items():
-            m, sd = _final(seed_rows, key)
+            m, sd = stat(seed_rows, key)
             grid[cls.index(cl), chs.index(ch)] = m
             sds[cls.index(cl), chs.index(ch)] = sd
         im = ax.imshow(grid, cmap="Blues", aspect="auto", origin="lower")
@@ -175,7 +200,7 @@ def heatmap_figure(cells, out_path: Path, title: str):
                     ax.text(
                         j,
                         i,
-                        f"{grid[i, j]:.2f}\n±{sds[i, j]:.2f}",
+                        f"{grid[i, j]:{spec}}\n±{sds[i, j]:{spec}}",
                         ha="center",
                         va="center",
                         fontsize=8.5,

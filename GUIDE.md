@@ -238,28 +238,37 @@ dominant action, it's backwards.)
 ## 9. What the experiment found
 
 Full grid: `clip_low` ∈ {0.05, 0.1, 0.2, 0.3} × `clip_high` ∈ {0.1, 0.2,
-0.3, 0.5} × 5 seeds × 3M steps, on breakout and asterix. Figures in the
-README and `figures/`.
+0.3, 0.5} × 5 seeds × 3M steps, on breakout, asterix, space_invaders and
+freeway. Figures in the README and `figures/`.
 
-**Finding 1 — the mechanism transfers.** Final entropy is monotone along both
-axes of both games' heatmaps: tighter $\epsilon_{low}$ → higher entropy,
-looser $\epsilon_{high}$ → higher entropy. On breakout the clip setting alone
-spans 0.30 to 1.23 nats. Park et al.'s signs, reproduced 4 orders of
-magnitude below the action-space size they were discovered at. This is
-evidence *against* the strong version of DPPO's claim that the clipping
-mechanism is a large-vocabulary artifact.
+**Finding 1 — the mechanism transfers where reward is dense.** Final entropy
+is monotone along both axes on breakout (one tie at the tightest pair) and
+within seed bands on space_invaders: tighter $\epsilon_{low}$ → higher
+entropy, looser $\epsilon_{high}$ → higher entropy. Asterix keeps the pattern
+except for two dips, both at the tight bounds (0.32→0.29 along `clip_high`,
+0.51→0.44 along `clip_low`); freeway has no structure at all. On breakout the
+clip setting alone spans 0.30 to 1.23 nats. Park et al.'s signs, reproduced
+4 orders of magnitude below the action-space size they were discovered at.
+This is evidence *against* the strong version of DPPO's claim that the
+clipping mechanism is a large-vocabulary artifact.
 
-**Finding 2 — $\epsilon_{low}$ is the dominant dial**, moving entropy roughly
-3× further than $\epsilon_{high}$ at matched widths. A plausible reading of
-the asymmetry: suppression (what $\epsilon_{low}$ limits) compounds every
-update an action stays out of favor, while boosting (what $\epsilon_{high}$
-limits) only fires in the rarer moments a tail action looks good. Untested
-here — measuring *who* occupies each dead zone over training would settle it.
+**Finding 2 — $\epsilon_{low}$ is the stronger dial where the pattern is
+clean.** Taking each axis' entropy range, averaged over the other axis,
+$\epsilon_{low}$ moves entropy 2.2× further than $\epsilon_{high}$ on breakout,
+1.6× on space_invaders, 1.9× on freeway, and a wash on asterix (1.0×). A
+plausible reading of the asymmetry: suppression (what $\epsilon_{low}$ limits)
+compounds every update an action stays out of favor, while boosting (what
+$\epsilon_{high}$ limits) only fires in the rarer moments a tail action looks
+good. Untested here — measuring *who* occupies each dead zone over training
+would settle it.
 
 **Finding 3 — the performance effect does not transfer; it flips.** High
-entropy wins breakout (21.4 best return vs ~9 for the low-entropy row) and
-loses asterix (best cell 19.1 is low-entropy; the max-entropy corner scores
-7.6). A story consistent with this — offered as hypothesis, not conclusion:
+entropy wins breakout (21.4 best return vs ~9 for the low-entropy row), loses
+asterix (best cell 19.1 is low-entropy; the max-entropy corner scores 7.6),
+is flat on space_invaders (no cell ordering survives the error bars), and
+freeway's returns are seed-bimodal — neighboring cells land at 44.7 ± 21.9
+and 60.9 ± 1.0 in the same column. A story consistent with this — offered as
+hypothesis, not conclusion:
 in breakout, exploratory paddle movement finds new ball angles and randomness
 is cheap; in asterix, enemies kill you, so residual stochasticity is a tax on
 every episode. The general lesson is the honest one: **clip asymmetry is a
@@ -267,9 +276,12 @@ real entropy knob, but the right entropy is a property of the environment.**
 
 What this repo does *not* show: whether the mechanism scales with action-space
 size (the 6 → 18 → hundreds dose-response that would fully arbitrate DPPO's
-hypothesis), whether it holds at other `epochs`/`lr` regimes, or whether tuned
-asymmetry can replace the entropy bonus at matched final performance. All
-three are natural next chapters.
+hypothesis), whether it holds at other `epochs`/`lr` regimes, whether tuned
+asymmetry can replace the entropy bonus at matched final performance, or
+whether the entropy shift is a dead-zone effect rather than a step-size
+effect: the two co-move across the grid (every heatmap carries a KL panel),
+and matching cells on mean KL still leaves gaps, which is suggestive, not a
+control. All four are natural next chapters.
 
 ## 10. Reading list, in dependency order
 

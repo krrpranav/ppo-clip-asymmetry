@@ -36,9 +36,9 @@ policy collapses to one action, the max-entropy one stays spread:
 
 | | entropy vs clip bounds | return vs entropy | reward |
 |---|---|---|---|
-| breakout | strictly monotone, both axes (0.30→1.23 nats) | positive | dense |
+| breakout | monotone both axes (0.30→1.23 nats), one tie | positive | dense |
 | space_invaders | monotone within seed bands | flat | dense |
-| asterix | monotone, one inversion at tightest `clip_low` | negative | dense |
+| asterix | monotone but for two dips at the tight bounds | negative | dense |
 | freeway | no structure; seeds go bimodal | unstable | **sparse** |
 
 1. **The mechanism transfers where reward is dense.** Tighter `clip_low` →
@@ -46,8 +46,11 @@ policy collapses to one action, the max-entropy one stays spread:
    anywhere — Park et al.'s signs at |A|≈100k, reproduced at |A|=6. Freeway,
    the one sparse-reward game, breaks it: the advantage signal is too rare for
    the clip's dead zones to bite consistently.
-2. **`clip_low` is the dominant dial**, moving entropy ~2–3× further than
-   `clip_high`. The famous trick (DAPO's clip-higher) tunes the weaker knob.
+2. **`clip_low` is the stronger dial where the pattern is clean**: entropy
+   moves 2.2× further along `clip_low` than along `clip_high` on breakout
+   (each axis' entropy range, averaged over the other axis), 1.6× on
+   space_invaders, 1.9× on freeway's unstructured grid, and a wash on asterix
+   (1.0×). The famous trick (DAPO's clip-higher) tunes the weaker knob.
 3. **The performance effect is environment-specific** — positive, flat,
    negative, unstable, one per game. Cell-level return rankings are seed
    noise everywhere; only the row-level entropy pattern survives the error
